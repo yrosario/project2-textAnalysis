@@ -6,23 +6,26 @@ Created on Mon Jun  8 09:47:14 2015
 """
 import csv
 import sys
-import pickle
 import re
 import scipy.stats
 from nltk.stem import PorterStemmer
 from nltk.stem import LancasterStemmer
 from nltk.tokenize import WordPunctTokenizer
+from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from bs4 import BeautifulSoup
+from collections import Counter
 
 
-lcf = open("lancater.txt", "w")
-psf = open("porter.txt", "wb")
+
 
 def main():
     #file paths
     pathFile = "data/path-words.csv"
     postFile = "data/posts.tsv"
+
+    
+
     
     #Open file and return content
     wordList = csvReader(pathFile)
@@ -46,44 +49,96 @@ def main():
     #Remove Html tags
     cleanSentence = cleanText(sentence)
     
+    
+    #no stemming
     #Return frequency of path words per user posting
     pathWordsNum = frequentNum(cleanSentence,"p", words)
     #Return freqeuncy of graphics html tags per user posting
     graphicsNum = frequentNum(sentence, "g")
     #Return Frequency of emotican peruser postings
     emoticanNum = frequentNum(cleanSentence, "e")
+    #Return Frequency of ellipses
+    ellipsesNum = frequentNum(cleanSentence, "l")
 
     
-    stemStopWordLanc = wordStemmer(words, 'lancaster')
+    #stem word list using lancaster
+    stemWordLanc = wordStemmer(words, 'lancaster')
+    #Remove Duplicates from word path
+    stemWordLanc = list(set(stemWordLanc))
+    #Stem user posting
     stemPathLanc = wordStemmer(cleanSentence, 'lancaster')
-    pathWordsNumLanc = frequentNum(stemPathLanc, "p", stemStopWordLanc)
+    #Get list of frequent postings
+    pathWordsNumLanc = frequentNum(stemPathLanc, "p", stemWordLanc)
     
-    stemStopWordPort = wordStemmer(words, 'porter')
+
+    #stem word list using porter
+    stemWordPort = wordStemmer(words, 'porter')
+    #print(stemWordPort)
+    #Remove Duplicates from word path
+    stemWordPort = list(set(stemWordPort))
+    #stem user posteing using porter
     stemPathPort = wordStemmer(cleanSentence, 'porter')
-    pathWordsNumPort = frequentNum(stemPathPort, "p", stemStopWordPort)
+    #Get list of frequent postings
+    pathWordsNumPort = frequentNum(stemPathPort, "p", stemWordPort)
     
+    #Result output file
+    outputFile = "data/result.csv"
+        #Output file write to result.csv
+    resultFile = fileOpen(outputFile, "w")
     
-    lcf.close()
-    psf.close()
-    
+    #header information
+    writeFile("tag correlation", "stemming tequeniques", "correlation value", "p value", filename = resultFile)
     print(len(pathWordsNum)," ",len(graphicsNum)," ",len(emoticanNum))
     print("none")
-    print(scipy.stats.pearsonr(pathWordsNum,graphicsNum))
-    print(scipy.stats.pearsonr(pathWordsNum,emoticanNum))
-    print("lanc")
-    print(scipy.stats.pearsonr(pathWordsNumLanc,graphicsNum))
-    print(scipy.stats.pearsonr(pathWordsNumLanc,emoticanNum))
-    print("port")
-    print(scipy.stats.pearsonr(pathWordsNumPort,graphicsNum))
-    print(scipy.stats.pearsonr(pathWordsNumPort,emoticanNum))
+    
+    #1st data value
+    stats = scipy.stats.pearsonr(pathWordsNum,graphicsNum)
+    writeFile("tags", "none", stats[0], stats[1], filename = resultFile)
+    
+    #2nd data value    
+    stats = scipy.stats.pearsonr(pathWordsNum,emoticanNum)
+    writeFile("emoticons", "none", stats[0], stats[1], filename = resultFile)
+    
+    #3nd data value    
+    stats = scipy.stats.pearsonr(pathWordsNum,ellipsesNum)
+    writeFile("ellipses", "none", stats[0], stats[1], filename = resultFile)
+    
+    
+    #4th data value lancaster   
+    stats = scipy.stats.pearsonr(pathWordsNumLanc,graphicsNum)
+    writeFile("tags", "Lancaster", stats[0], stats[1], filename = resultFile)
+    
+    #5th data value lancaster   
+    stats = scipy.stats.pearsonr(pathWordsNumLanc,emoticanNum)
+    writeFile("emoticons", "Lancaster", stats[0], stats[1], filename = resultFile)
+    
+    #6th data value lancaster   
+    stats = scipy.stats.pearsonr(pathWordsNumLanc,ellipsesNum)
+    writeFile("ellipses", "Lancaster", stats[0], stats[1], filename = resultFile)
+    
+    #7th data value Porter   
+    stats = scipy.stats.pearsonr(pathWordsNumPort,graphicsNum)
+    writeFile("tags", "Porter", stats[0], stats[1], filename = resultFile)
+    
+    #8th data value Porter   
+    stats = scipy.stats.pearsonr(pathWordsNumPort,emoticanNum)
+    writeFile("emoticans", "Porter", stats[0], stats[1], filename = resultFile)
+    
+    #9th data value Porter   
+    stats = scipy.stats.pearsonr(pathWordsNumPort,ellipsesNum)
+    writeFile("ellipses", "Porter", stats[0], stats[1], filename = resultFile)
+    
+    
+    resultFile.close()
   
     
 
     
 def fileOpen(filename, param = 'r'):
     try:
-        fh = open(filename, param)
+        fh = open(filename, param, encoding='utf8')
         return fh 
+        
     except:
         print("Unable to open file")
         sys.exit()
@@ -93,7 +148,10 @@ def csvReader(filename, delim = ","):
     try:
         with open(filename, 'rU') as csvfile:
            reader = csv.reader(csvfile, delimiter=delim)
-           return list(reader)
+           t = list(reader)
+           print(t.pop(0))
+           print(len(t))
+           return t
     except:
         print("Unable to open file")
         sys.exit()
@@ -122,8 +180,11 @@ def wordStemmer(listItem, stemType):
 
 #Count how often the word appears and returns a dictionary   
 def wordFrequency(pathWords, userPost):
-    userPost = userPost.split("\n")
-    return sum([1 for word in pathWords for sentence in userPost if word in sentence])
+    userPost = word_tokenize(userPost)
+    userPost = Counter(userPost)
+    
+    return sum([userPost[word] for word in pathWords if userPost[word]])
+
     
 
 #Remove stop words from list
@@ -132,22 +193,25 @@ def stopWordsRemover(listItem, stopwords):
  
 def getGraphics(listItem):
     soup = BeautifulSoup(str(listItem))
-    #espression = re.compile()
-    count = 0
-    return sum([(count + 1) for word in soup.find_all()])
+    return sum([1 for word in soup.find_all()])
     
 def getImotacan(listItem):
-    #print(len(listItem))
-    #soup = BeautifulSoup(str(listItem))
-    #print(len(soup.getText()))
-    pattern = re.compile(r"([:=]\s*[-っ^oc']?\s*[-j#x$\\ls./bþp*0o@|<c\{\}>3d()\]\[]\s*[|)]?|[8x]\s*[-]?\s*[}d]|[>]\s*[:]\s*[/[()p\\/]|[d]\s*[:]?\s*[']?\s*[<:;=']\s*[:]?|\sx\s*[-]?\s*[p]\s|[0o]\s*[:;]\s*[-]?\s*[)3]|[}3]\s*[:]\s-?[)]|\^<_<|>_>\^|\|[;]?-[o)]|#-\)|%-?\)|:?-?###..|<\s*:\s*-\s*[|]|ಠ\s*_s\*ಠ|<\s*\*\s*\)\s*\)\s*\)\s*-\s*{|>\s*<\s*\(\s*\(\s*\(\s*\*\s*>|><>|\\o/|\*\\0/\*|@}-;-'---|@>-->--|~\(_8^\(I\)|[5~]:-[)\\]|//0-0\\\\\]|\*<\|:-\)|,:-\)|7:^\]|<//*3|\.\.\.)", re.I)
-     #wordSplit = " ".join(listItem)
-    #wordSplit = wordSplit.replace(" ","")
+    pattern = re.compile(r"([:=]\s*[-っ^oc']?\s*[-j#x$\\ls./bþp*0o@|<c\{\}>3d()\]\[]\s*[|)]?|[8x]\s*[-]?\s*[}d]|[>]\s*[:]\s*[/[()p\\/]|[d]\s*[:]?\s*[']?\s*[<:;=']\s*[:]?|\sx\s*[-]?\s*[p]\s|[0o]\s*[:;]\s*[-]?\s*[)3]|[}3]\s*[:]\s-?[)]|\^<_<|>_>\^|\|[;]?-[o)]|#-\)|%-?\)|:?-?###..|<\s*:\s*-\s*[|]|ಠ\s*_s\*ಠ|<\s*\*\s*\)\s*\)\s*\)\s*-\s*{|>\s*<\s*\(\s*\(\s*\(\s*\*\s*>|><>|\\o/|\*\\0/\*|@}-;-'---|@>-->--|~\(_8^\(I\)|[5~]:-[)\\]|//0-0\\\\\]|\*<\|:-\)|,:-\)|7:^\]|<//*3)", re.I)
     wordSplit = re.split(pattern, listItem)
-    #print(l)
-    pickle.dump(wordSplit, psf)
+    
     
     return sum([1 for emot in wordSplit if re.match(pattern, emot)])
+
+def getEllipses(listItem):
+    pattern = re.compile(r"\.\.+")
+    
+    wordPuctTokenize = WordPunctTokenizer()
+    words = wordPuctTokenize.tokenize(listItem)
+    
+    return sum([1 for word in words if re.match(pattern, word)])
+    
+    
+    
     
 def frequentNum(listItem, freqType, word = " "):
 
@@ -157,8 +221,14 @@ def frequentNum(listItem, freqType, word = " "):
         return [getGraphics(sentence) for sentence in listItem]
     elif freqType == "e":
         return [getImotacan(sentence) for sentence in listItem]
+    elif freqType == "l":
+        return [getEllipses(sentence) for sentence in listItem]
+        
+def writeFile(*content, filename):
+        outf = csv.writer(filename, delimiter = ',')
+        outf.writerow(content)
     
-    #print(wordSplit)
-    return sum([1 for emot in l if re.match(pattern, emot)])
+    
+    
 if __name__ == '__main__':
     main()
