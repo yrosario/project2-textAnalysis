@@ -90,49 +90,40 @@ def main():
     
     #print(ellipsesNum)
     #1st data value
-    
-    #Data Normalization
-    commonDivisorNone = sum(pathWordsNum) + sum(graphicsNum) + sum(emoticanNum) + sum(ellipsesNum)
-    commonDivisorLanc = commonDivisorNone - sum(pathWordsNum) + sum(pathWordsNumLanc)
-    commonDivisorPort = commonDivisorNone - sum(pathWordsNum) + sum(pathWordsNumPort)
-    
-    pathWordsNum = normalize(pathWordsNum,commonDivisorNone)
-    stats = scipy.stats.pearsonr(pathWordsNum,normalize(graphicsNum,commonDivisorNone))
+    stats = scipy.stats.pearsonr(pathWordsNum,graphicsNum)
     writeFile("tags", "none", stats[0], stats[1], filename = resultFile)
     
     #2nd data value    
-    stats = scipy.stats.pearsonr(pathWordsNum,normalize(emoticanNum,commonDivisorNone))
+    stats = scipy.stats.pearsonr(pathWordsNum,emoticanNum)
     writeFile("emoticons", "none", stats[0], stats[1], filename = resultFile)
     
-    #3nd data value   
-    stats = scipy.stats.pearsonr(pathWordsNum,normalize(ellipsesNum,commonDivisorNone))
+    #3nd data value    
+    stats = scipy.stats.pearsonr(pathWordsNum,ellipsesNum)
     writeFile("ellipses", "none", stats[0], stats[1], filename = resultFile)
     
     
-    #4th data value lancaster 
-    pathWordsNumLanc = normalize(pathWordsNumLanc,commonDivisorLanc)      
-    stats = scipy.stats.pearsonr(pathWordsNumLanc,normalize(graphicsNum,commonDivisorLanc))
+    #4th data value lancaster   
+    stats = scipy.stats.pearsonr(pathWordsNumLanc,graphicsNum)
     writeFile("tags", "Lancaster", stats[0], stats[1], filename = resultFile)
     
-    #5th data value lancaster
-    stats = scipy.stats.pearsonr(pathWordsNumLanc,normalize(emoticanNum,commonDivisorLanc))
+    #5th data value lancaster   
+    stats = scipy.stats.pearsonr(pathWordsNumLanc,emoticanNum)
     writeFile("emoticons", "Lancaster", stats[0], stats[1], filename = resultFile)
     
     #6th data value lancaster   
-    stats = scipy.stats.pearsonr(pathWordsNumLanc,normalize(ellipsesNum,commonDivisorLanc))
+    stats = scipy.stats.pearsonr(pathWordsNumLanc,ellipsesNum)
     writeFile("ellipses", "Lancaster", stats[0], stats[1], filename = resultFile)
     
-    #7th data value Porter 
-    pathWordsNumPort = normalize(pathWordsNumPort,commonDivisorPort) 
-    stats = scipy.stats.pearsonr(pathWordsNumPort,normalize(graphicsNum,commonDivisorPort))
+    #7th data value Porter   
+    stats = scipy.stats.pearsonr(pathWordsNumPort,graphicsNum)
     writeFile("tags", "Porter", stats[0], stats[1], filename = resultFile)
     
     #8th data value Porter   
-    stats = scipy.stats.pearsonr(pathWordsNumPort,normalize(emoticanNum,commonDivisorPort))
+    stats = scipy.stats.pearsonr(pathWordsNumPort,emoticanNum)
     writeFile("emoticans", "Porter", stats[0], stats[1], filename = resultFile)
     
     #9th data value Porter   
-    stats = scipy.stats.pearsonr(pathWordsNumPort,normalize(ellipsesNum,commonDivisorPort))
+    stats = scipy.stats.pearsonr(pathWordsNumPort,ellipsesNum)
     writeFile("ellipses", "Porter", stats[0], stats[1], filename = resultFile)
     
     
@@ -187,7 +178,11 @@ def wordFrequency(pathWords, userPost):
     Post = word_tokenize(userPost)
     userPost = Counter(Post)
     
-    return sum([userPost[word] for word in pathWords if userPost[word]])
+    try:
+        total = sum([userPost[word] for word in pathWords if userPost[word]]) / len(Post)
+        return total
+    except:
+        return 0
 
     #Remove stop words from list
 def stopWordsRemover(listItem, stopwords):
@@ -200,8 +195,9 @@ def getGraphics(listItem):
     
     pattern = re.compile("[biu]|em|strong|strike|font|pre|tt|code|img", re.I)
 
-    return sum([1 for tag in soup.findAll(pattern)])
-
+    totalTags = sum([1 for tag in soup.findAll()])
+    return sum([1 for tag in soup.findAll(pattern)]) / float(totalTags)
+    return 1
     
     
 def getEmotican(listItem):
@@ -214,9 +210,13 @@ def getEmotican(listItem):
                          ><>|\\o/|\*\\0/\*|@}-;-'---|@>-->--|~\(_8^\(I\)|[5~]:-[)\\]|\
                          //0-0\\\\\]|\*<\|:-\)|,:-\)|7:^\]|<//*3|[:=][-っ^oc']?[b]\s+)", re.I)
     wordSplit = re.split(pattern, listItem)
-
-    return sum([1 for emot in wordSplit if re.match(pattern, emot)])
-        
+    
+    try:
+        #total = sum([1 for emot in wordSplit if re.match(pattern, emot)])
+        total = float(sum([1 for emot in wordSplit if re.match(pattern, emot)])) / float(len(wordSplit))
+        return total
+    except:
+        return 0
 
 def getEllipses(listItem):
     pattern = re.compile(r"\.\.\.*")
@@ -224,7 +224,7 @@ def getEllipses(listItem):
     wordPuctTokenize = WordPunctTokenizer()
     words = wordPuctTokenize.tokenize(listItem)
     
-    return sum([1 for word in words if re.match(pattern, word)])
+    total = sum([1 for word in words if re.match(pattern, word)])
         
     
     
@@ -246,7 +246,7 @@ def writeFile(*content, filename):
         outf.writerow(content)
         
 def normalize(listItem, divisor):
-    return [(item/divisor) for item in listItem]
+    return sum([item for item in listItem]) / divisor
     
     
     
