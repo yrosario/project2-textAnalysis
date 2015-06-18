@@ -1,4 +1,4 @@
-# project2-textAnalysis
+#Read Me
 This program is written in python ment to be run on a linux system.
 
 The execute program to run this program is called p2.py. This program is a accompanied with a with a data folder which contains
