@@ -2,8 +2,18 @@
 """
 Created on Mon Jun  8 09:47:14 2015
 Created on Tue Jun  2 19:33:23 2015
-File name: MainAcitivty.java
+File name: p2.py
 Author: Yussel Rosario, Muath Alqurashi
+
+Description: This program takes a set of data from two files related to the Self-Harm Study 
+Project. Those files are Path-words.csv, and post.tsv. The file Path-Words.csv contains three
+columns (word, Weight, and Modularity Class) but for the purpose of this project only the 
+content of the word file will be extracted. More precisely only the words that have a length 
+of one word. From the 2nd file (post.tsv), the data from the body column will be extracted. 
+All other columns such as user, and posted will be disregarded. The purpose of this project 
+is to find a correlation between the frequencies of Patheligical words, html graphics tags, 
+emoticons, and ellipses using different stemming techniques as Porter Stemming, Lancasting 
+Stemming, and no stemming.
 
 @author: end
 """
@@ -73,7 +83,6 @@ def main():
 
     #stem word list using porter
     stemWordPort = wordStemmer(words, 'porter')
-    #print(stemWordPort)
     #Remove Duplicates from word path
     stemWordPort = list(set(stemWordPort))
     #stem user posteing using porter
@@ -86,11 +95,9 @@ def main():
         #Output file write to result.csv
     resultFile = fileOpen(outputFile, "w")
     
-    print(sum(emoticanNum))
     #header information
     writeFile("tag correlation", "stemming techniques", "correlation value", "p value", filename = resultFile)
     
-    #print(ellipsesNum)
 
     
     #Data Normalization
@@ -199,9 +206,6 @@ def stopWordsRemover(listItem, stopwords):
 #Fucntion retruns a floating point value
 def getGraphics(listItem):
     soup = BeautifulSoup(str(listItem))
-    #print(listItem)
-    #time.sleep(50.7)
-    
     pattern = re.compile("[biu]|em|strong|strike|font|pre|tt|code|img", re.I)
 
     return len(soup.findAll(pattern))
