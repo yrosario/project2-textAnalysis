@@ -1,5 +1,5 @@
 # project2-textAnalysis
-This program is written in pyton ment to be run on a linux system.
+This program is written in python ment to be run on a linux system.
 
 The execute program to run this program is called p2.py. This program is a accompanied with a with a data folder which contains
 two files path_words.csv and post.tsv. This directory is required to execute this program. The data folder must be in the same
