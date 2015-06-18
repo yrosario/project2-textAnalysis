@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Jun  8 09:47:14 2015
+Created on Tue Jun  2 19:33:23 2015
+File name: MainAcitivty.java
+Author: Yussel Rosario, Muath Alqurashi
 
 @author: end
 """
@@ -12,7 +15,6 @@ import os
 from nltk.stem import PorterStemmer
 from nltk.stem import LancasterStemmer
 from nltk.tokenize import WordPunctTokenizer
-from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from bs4 import BeautifulSoup
 from collections import Counter
@@ -47,7 +49,7 @@ def main():
     #Remove Html tags
     cleanSentence = cleanText(sentence)
     
-    
+
     #no stemming
     #Return frequency of path words per user posting
     pathWordsNum = frequentNum(cleanSentence,"p", words)
@@ -89,13 +91,14 @@ def main():
     writeFile("tag correlation", "stemming techniques", "correlation value", "p value", filename = resultFile)
     
     #print(ellipsesNum)
-    #1st data value
+
     
     #Data Normalization
     commonDivisorNone = sum(pathWordsNum) + sum(graphicsNum) + sum(emoticanNum) + sum(ellipsesNum)
     commonDivisorLanc = commonDivisorNone - sum(pathWordsNum) + sum(pathWordsNumLanc)
     commonDivisorPort = commonDivisorNone - sum(pathWordsNum) + sum(pathWordsNumPort)
     
+    #1st data value
     pathWordsNum = normalize(pathWordsNum,commonDivisorNone)
     stats = scipy.stats.pearsonr(pathWordsNum,normalize(graphicsNum,commonDivisorNone))
     writeFile("tags", "none", stats[0], stats[1], filename = resultFile)
@@ -107,7 +110,7 @@ def main():
     #3nd data value   
     stats = scipy.stats.pearsonr(pathWordsNum,normalize(ellipsesNum,commonDivisorNone))
     writeFile("ellipses", "none", stats[0], stats[1], filename = resultFile)
-    
+        
     
     #4th data value lancaster 
     pathWordsNumLanc = normalize(pathWordsNumLanc,commonDivisorLanc)      
@@ -172,7 +175,7 @@ def singleWords(listItem, columnNum):
 def cleanText(listItem):
     return [BeautifulSoup(sentence).get_text().replace("\\n","\n") for sentence in listItem]
     
-#Applied word stemmer to list. Returns a list
+#Applied word stemmer to list. Returns a list of stem words using either Porter or Lancaster
 def wordStemmer(listItem, stemType):
     if(stemType == 'porter'):
         ps = PorterStemmer()
@@ -182,17 +185,18 @@ def wordStemmer(listItem, stemType):
         return [ps.stem(item) for item in listItem]
         
 
-#Count how often the word appears and returns a dictionary   
+#Locates the pathwords in the text and counts there frequency. Function returns a floating point
+#value   
 def wordFrequency(pathWords, userPost):
-    Post = word_tokenize(userPost)
-    userPost = Counter(Post)
-    
+    userPost = Counter(userPost)
     return sum([userPost[word] for word in pathWords if userPost[word]])
 
-    #Remove stop words from list
+ #Remove stop words from list
 def stopWordsRemover(listItem, stopwords):
     return [item for item in listItem if item not in stopwords]    
- 
+
+#Function locates graphical html tags and counts there frequency
+#Fucntion retruns a floating point value
 def getGraphics(listItem):
     soup = BeautifulSoup(str(listItem))
     #print(listItem)
@@ -200,10 +204,11 @@ def getGraphics(listItem):
     
     pattern = re.compile("[biu]|em|strong|strike|font|pre|tt|code|img", re.I)
 
-    return sum([1 for tag in soup.findAll(pattern)])
+    return len(soup.findAll(pattern))
 
     
-    
+#Function locates emoticons in the text and counts there frequency
+#The function returns a floating point value
 def getEmotican(listItem):
     pattern = re.compile(r"([:=][-っ^oc']?[-j#x$\\ls.þp*0o@|\
                          <c\{\}>3d()\]\[][|)]?|[8x][-]?[}d]|\
@@ -212,7 +217,9 @@ def getEmotican(listItem):
                          #-\)|%-?\)|:?-?###..|\
                          <:-[|]|ಠ_ಠ|<\s*\*\s*\)\s*\)\s*\)\s*-\s*{|>\s*<\s*\(\s*\(\s*\(\s*\*\s*>|\
                          ><>|\\o/|\*\\0/\*|@}-;-'---|@>-->--|~\(_8^\(I\)|[5~]:-[)\\]|\
-                         //0-0\\\\\]|\*<\|:-\)|,:-\)|7:^\]|<//*3|[:=][-っ^oc']?[b]\s+)", re.I)
+                         //0-0\\\\\]|\*<\|:-\)|,:-\)|7:^\]|<//*3|[:=][-っ^oc']?[b]\s+|\
+                          [<>][:;=8][\-o\*\']?[\)\]\(\[dDpP/\:\}\{@\|\\]|\
+                         [\)\]\(\[dDpP/\:\}\{@\|\\][\-o\*\']?[:;=8][<>]?)", re.I)
     wordSplit = re.split(pattern, listItem)
 
     return sum([1 for emot in wordSplit if re.match(pattern, emot)])
@@ -221,26 +228,38 @@ def getEmotican(listItem):
 def getEllipses(listItem):
     pattern = re.compile(r"\.\.\.*")
     
-    wordPuctTokenize = WordPunctTokenizer()
-    words = wordPuctTokenize.tokenize(listItem)
-    
-    return sum([1 for word in words if re.match(pattern, word)])
+    #wordPuctTokenize = WordPunctTokenizer()
+    #words = wordPuctTokenize.tokenize(listItem)
+ 
+    return sum([1 for word in listItem if re.match(pattern, word)])
         
     
     
     
-    
+#Rapper function. Takes the text read from the Path-Words.csv and POST.tsv file
+#and executes the a fucntion to calculate the frequency of path-words, html tags, emoticons,
+#or ellipsis. The function returns a list of numbers measuring the frequencies
 def frequentNum(listItem, freqType, word = " "):
+    
+    #Tokenize the text into periods and words
+    tok = WordPunctTokenizer()
+    
 
+    #Calculate the frequency of stopwords
     if freqType == "p":
-        return [wordFrequency(word, sentence) for sentence in listItem]
+        return [wordFrequency(word, tok.tokenize(sentence)) for sentence in listItem]
+    #Calculate the frequency of html tags
     elif freqType == "g":
         return [getGraphics(sentence) for sentence in listItem]
+    #Calculate the frequency of emoticans
     elif freqType == "e":
         return [getEmotican(sentence) for sentence in listItem]
+    #Calculate the frequency of Ellipses
     elif freqType == "l":
-        return [getEllipses(sentence) for sentence in listItem]
-        
+        return [getEllipses(tok.tokenize(sentence)) for sentence in listItem]
+
+#Write result of calculation to CSV result file. Function takes any number of pararmeters
+#File handle must be passed        
 def writeFile(*content, filename):
         outf = csv.writer(filename, delimiter = ',')
         outf.writerow(content)
@@ -249,7 +268,7 @@ def normalize(listItem, divisor):
     return [(item/divisor) for item in listItem]
     
     
-    
+   
     
     
     
